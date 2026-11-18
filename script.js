@@ -2,13 +2,17 @@ const $ = (s, el = document) => el.querySelector(s);
 const root = document.documentElement;
 
 /* тема */
-const savedTheme = localStorage.getItem('theme');
-if (savedTheme) root.dataset.theme = savedTheme;
+try {
+  const savedTheme = localStorage.getItem('theme');
+  if (savedTheme) root.dataset.theme = savedTheme;
+} catch (e) {}
 
 $('#themeBtn').addEventListener('click', () => {
   const next = root.dataset.theme === 'light' ? 'dark' : 'light';
   root.dataset.theme = next;
-  localStorage.setItem('theme', next);
+  try {
+    localStorage.setItem('theme', next);
+  } catch (e) {}
 });
 
 /* мобильное меню */
@@ -40,30 +44,6 @@ const io = new IntersectionObserver((entries) => {
 
 document.querySelectorAll('.reveal').forEach((el) => io.observe(el));
 
-/* счётчики */
-const counterIO = new IntersectionObserver((entries) => {
-  entries.forEach((entry) => {
-    if (!entry.isIntersecting) return;
-    const el = entry.target;
-    const target = Number(el.dataset.count);
-    const step = Math.max(1, Math.round(target / 40));
-    let n = 0;
-
-    const timer = setInterval(() => {
-      n += step;
-      if (n >= target) {
-        n = target;
-        clearInterval(timer);
-      }
-      el.textContent = n;
-    }, 26);
-
-    counterIO.unobserve(el);
-  });
-}, { threshold: 0.6 });
-
-document.querySelectorAll('[data-count]').forEach((el) => counterIO.observe(el));
-
 /* всплывающее сообщение */
 const toast = $('#toast');
 
@@ -78,12 +58,16 @@ const showToast = (message, ok = true) => {
 /* форма: отправка на почту через FormSubmit */
 const form = $('#form');
 const submitBtn = form.querySelector('button[type="submit"]');
+const loadedAt = Date.now(); /* когда загрузилась страница */
 
 form.addEventListener('submit', async (e) => {
   e.preventDefault();
 
   /* скрытое поле-ловушка: заполняют только боты */
   if (form.querySelector('[name="_honey"]').value) return;
+
+  /* слишком быстро для человека: скорее всего бот */
+  if (Date.now() - loadedAt < 3000) return;
 
   const original = submitBtn.textContent;
   submitBtn.disabled = true;
